@@ -73,7 +73,7 @@ const Login = () => {
                                 <div><a className="link link-hover">Forgot password?</a></div>
 
                                 <button className="btn btn-neutral bg-[#CAEB66] border-none text-black mt-4">Login</button>
-                                <div className=''><p>Don’t have an account? <Link to='/register' className='text-[#bede5c] hover:underline'>Register</Link></p>
+                                <div className=''><p>Don’t have an account? <Link state={{from}} to='/register' className='text-[#bede5c] hover:underline'>Register</Link></p>
                                 </div>
                                 <div className="divider">OR</div>
                                 <button onClick={handleGoogleSignIn} type='button' className="btn bg-white text-black border-[#e5e5e5]">

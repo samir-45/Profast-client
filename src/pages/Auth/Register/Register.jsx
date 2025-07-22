@@ -1,10 +1,17 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import useAuth from '../../../Hooks/useAuth';
-import { Link } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import ProfastLogo from '../../shared/ProFastLogo/ProfastLogo';
+import axios from 'axios';
+import useAxios from '../../../Hooks/useAxios'
 
 const Register = () => {
+
+    const location = useLocation()
+    const navigate = useNavigate()
+
+    const from = location.state?.from || '/';
 
     const {
         register,
@@ -12,13 +19,42 @@ const Register = () => {
         formState: { errors }
     } = useForm()
 
-    const { createUser, signInWithGoogle } = useAuth()
+    const { createUser, signInWithGoogle, updateUserProfile, profilePic, setProfilePic } = useAuth()
+
+    const axiosInstance = useAxios()
 
     const onSubmit = (data) => {
         // console.log(data)
         createUser(data.email, data.password)
-            .then(result => {
+            .then(async (result) => {
                 console.log(result.user)
+
+                // Update user Info in database
+                const userInfo = {
+                    email: data?.email,
+                    role: 'user', //Default role
+                    photo: profilePic,
+                    name: data?.name,
+                    created_at: new Date().toISOString(),
+                    last_log_in: new Date().toISOString()
+                }
+
+                const userRes = await axiosInstance.post('/users', userInfo);
+                console.log(userRes.data)
+                // Update user info in Firebase
+
+                const userProfile = {
+                    displayName: data.name,
+                    photoURL: profilePic
+                }
+                updateUserProfile(userProfile)
+                    .then(() => {
+                        console.log('Profile name pic updated')
+                        navigate(from)
+                    })
+                    .catch(err => {
+                        console.log(err)
+                    })
             })
             .catch(err => {
                 console.error(err)
@@ -27,12 +63,37 @@ const Register = () => {
 
     const handleGoogleSignIn = () => {
         signInWithGoogle()
-            .then(res => {
+            .then(async (res) => {
                 console.log(res.user)
+                const user = res.user;
+
+                // Update user Info in database
+                const userInfo = {
+                    email: user?.email,
+                    role: 'user', //Default role
+                    photo: user?.photoURL,
+                    name: user?.displayName,
+                    created_at: new Date().toISOString(),
+                    last_log_in: new Date().toISOString()
+                }
+
+                const userRes = await axiosInstance.post('/users', userInfo);
+                console.log(userRes.data)
             })
             .catch(err => {
                 console.log(err)
             })
+    }
+
+    const handleImageUpload = async (e) => {
+        const image = e.target.files[0]
+        // console.log(image)
+        const formData = new FormData();
+        formData.append("image", image);
+
+        const imageUploadUrl = `https://api.imgbb.com/1/upload?key=${import.meta.env.VITE_IMAGE_UPLOAD_KEY}`
+        const res = await axios.post(imageUploadUrl, formData);
+        setProfilePic(res.data.data.url)
     }
 
     return (
@@ -49,6 +110,9 @@ const Register = () => {
                     <div className="card w-full shrink-0 ">
                         <div className="card-body max-w-10/12 p-0">
                             <form onSubmit={handleSubmit(onSubmit)} className="fieldset">
+
+                                <label className="label">Your Pic</label>
+                                <input onChange={handleImageUpload} required type="file" className="input" placeholder="Name" />
 
                                 <label className="label">Name</label>
                                 <input required type="text" {...register('name')} className="input w-full" placeholder="Name" />
